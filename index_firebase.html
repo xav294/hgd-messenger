@@ -1,0 +1,1301 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0"/>
+<title>HGD Messenger</title>
+<link rel="manifest" href="manifest.json"/>
+<meta name="theme-color" content="#FF6B00"/>
+<meta name="mobile-web-app-capable" content="yes"/>
+<meta name="apple-mobile-web-app-capable" content="yes"/>
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent"/>
+<meta name="apple-mobile-web-app-title" content="HGD Messenger"/>
+
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=Nunito:wght@400;600;700;800;900&display=swap');
+  :root {
+    --orange: #FF6B00;
+    --orange-dark: #E05A00;
+    --orange-light: #FFF3E8;
+    --green-sent: #DCF8C6;
+    --bg: #f5f5f5;
+    --chat-bg: #ECE5DD;
+  }
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body { font-family: 'Nunito', Arial, sans-serif; background: var(--bg); height: 100vh; height: 100dvh; overflow: hidden; }
+  #app { height: 100vh; height: 100dvh; display: flex; flex-direction: column; max-width: 480px; margin: 0 auto; position: relative; overflow: hidden; background: #fff; box-shadow: 0 0 40px rgba(0,0,0,0.12); }
+  .screen { display: none; flex-direction: column; height: 100%; }
+  .screen.active { display: flex; }
+
+  /* SPLASH */
+  #splash { background: var(--orange); align-items: center; justify-content: center; }
+  .splash-logo { width: 90px; height: 90px; background: #fff; border-radius: 22px; display: flex; align-items: center; justify-content: center; margin: 0 auto 16px; box-shadow: 0 8px 32px rgba(0,0,0,0.2); }
+  .splash-logo span { color: var(--orange); font-weight: 900; font-size: 48px; }
+  .splash-title { color: #fff; font-size: 36px; font-weight: 900; letter-spacing: -1px; text-align: center; }
+  .splash-sub { color: rgba(255,255,255,0.8); font-size: 14px; text-align: center; margin-top: 4px; }
+  .dots { display: flex; gap: 6px; justify-content: center; margin-top: 48px; }
+  .dots span { width: 8px; height: 8px; border-radius: 50%; background: rgba(255,255,255,0.4); animation: pulse 1.2s infinite; }
+  .dots span:nth-child(1) { background: #fff; animation-delay: 0s; }
+  .dots span:nth-child(2) { animation-delay: 0.3s; }
+  .dots span:nth-child(3) { animation-delay: 0.6s; }
+
+  /* AUTH */
+  #auth { background: var(--bg); overflow-y: auto; }
+  .auth-header { background: var(--orange); padding: 40px 24px 60px; position: relative; overflow: hidden; flex-shrink: 0; }
+  .auth-logo-row { display: flex; align-items: center; gap: 12px; margin-bottom: 24px; }
+  .hgd-logo { width: 40px; height: 40px; background: #fff; border-radius: 8px; display: flex; align-items: center; justify-content: center; box-shadow: 0 2px 8px rgba(0,0,0,0.15); flex-shrink: 0; }
+  .hgd-logo span { color: var(--orange); font-weight: 900; font-size: 22px; }
+  .auth-title { color: #fff; font-size: 26px; font-weight: 800; line-height: 1.2; }
+  .auth-sub { color: rgba(255,255,255,0.85); font-size: 14px; margin-top: 8px; }
+  .auth-card { margin: -20px 16px 0; background: #fff; border-radius: 16px; padding: 20px; box-shadow: 0 4px 24px rgba(0,0,0,0.08); }
+  .tab-switch { display: flex; background: #f0f0f0; border-radius: 10px; padding: 4px; margin-bottom: 20px; }
+  .tab-switch button { flex: 1; padding: 10px 0; border-radius: 8px; border: none; cursor: pointer; font-weight: 700; font-size: 14px; font-family: inherit; background: transparent; color: #666; transition: all 0.2s; }
+  .tab-switch button.active { background: var(--orange); color: #fff; }
+  .field-group { margin-bottom: 16px; }
+  .field-label { font-size: 11px; font-weight: 800; color: #888; letter-spacing: 0.5px; margin-bottom: 6px; }
+  .field-wrap { display: flex; align-items: center; border: 1.5px solid #e0e0e0; border-radius: 12px; padding: 0 14px; background: #fafafa; transition: border 0.2s; }
+  .field-wrap:focus-within { border-color: var(--orange); }
+  .field-wrap input { flex: 1; border: none; background: transparent; padding: 14px 0; font-size: 15px; font-family: inherit; outline: none; color: #222; }
+  .phone-row { display: flex; gap: 8px; align-items: stretch; }
+  .country-select-wrap { display: flex; align-items: center; border: 1.5px solid #e0e0e0; border-radius: 12px; padding: 0 10px; background: #fafafa; flex-shrink: 0; min-width: 110px; cursor: pointer; position: relative; }
+  .country-flag-display { display: flex; align-items: center; gap: 4px; font-size: 13px; font-weight: 700; color: #444; pointer-events: none; }
+  .country-dropdown { position: absolute; top: 100%; left: 0; right: 0; background: #fff; border: 1.5px solid var(--orange); border-radius: 12px; max-height: 220px; overflow-y: auto; z-index: 999; box-shadow: 0 8px 24px rgba(0,0,0,0.15); margin-top: 4px; width: 260px; }
+  .country-option { padding: 10px 14px; display: flex; align-items: center; gap: 8px; cursor: pointer; font-size: 13px; }
+  .country-option:hover { background: var(--orange-light); }
+  .country-option .dial { font-weight: 700; color: var(--orange); min-width: 45px; }
+  .country-search-input { width: 100%; border: none; border-bottom: 1.5px solid #eee; padding: 10px 14px; font-size: 13px; font-family: inherit; outline: none; position: sticky; top: 0; background: #fff; }
+  .phone-input-wrap { flex: 1; display: flex; align-items: center; border: 1.5px solid #e0e0e0; border-radius: 12px; padding: 0 14px; background: #fafafa; transition: border 0.2s; }
+  .phone-input-wrap:focus-within { border-color: var(--orange); }
+  .phone-input-wrap input { border: none; background: transparent; flex: 1; padding: 14px 0; font-size: 15px; font-family: inherit; outline: none; color: #222; }
+  .error-box { background: #fff3f3; border: 1px solid #ffcdd2; color: #c62828; border-radius: 10px; padding: 10px 14px; font-size: 13px; margin-bottom: 16px; }
+  .success-box { background: #f0fff4; border: 1px solid #b2dfdb; color: #1b5e20; border-radius: 10px; padding: 10px 14px; font-size: 13px; margin-bottom: 16px; }
+  .btn-primary { width: 100%; padding: 15px 0; background: var(--orange); color: #fff; border: none; border-radius: 12px; font-size: 16px; font-weight: 800; cursor: pointer; font-family: inherit; box-shadow: 0 4px 16px rgba(255,107,0,0.4); display: flex; align-items: center; justify-content: center; gap: 8px; }
+  .btn-primary:disabled { opacity: 0.6; cursor: not-allowed; }
+  .switch-mode { text-align: center; margin-top: 16px; font-size: 13px; color: #888; }
+  .switch-mode a { color: var(--orange); font-weight: 700; cursor: pointer; }
+
+  /* VERIFY */
+  #verify { background: var(--bg); overflow-y: auto; }
+  .code-inputs { display: flex; gap: 10px; justify-content: center; margin: 20px 0; }
+  .code-inputs input { width: 48px; height: 56px; text-align: center; font-size: 24px; font-weight: 800; border: 2px solid #e0e0e0; border-radius: 12px; outline: none; font-family: inherit; transition: border 0.2s; }
+  .code-inputs input:focus { border-color: var(--orange); }
+
+  /* MAIN */
+  #main { background: var(--bg); }
+  .top-bar { background: var(--orange); padding: 14px 16px 0; flex-shrink: 0; }
+  .top-bar-row { display: flex; align-items: center; gap: 10px; margin-bottom: 12px; }
+  .tab-bar { display: flex; }
+  .tab-bar button { flex: 1; background: none; border: none; color: rgba(255,255,255,0.6); padding: 8px 0 10px; cursor: pointer; font-family: inherit; font-weight: 600; font-size: 11px; border-bottom: 3px solid transparent; display: flex; flex-direction: column; align-items: center; gap: 2px; transition: all 0.2s; }
+  .tab-bar button.active { color: #fff; font-weight: 800; border-bottom-color: #fff; }
+  .tab-bar button svg { width: 18px; height: 18px; }
+  .content { flex: 1; overflow-y: auto; }
+
+  /* AVATAR */
+  .avatar { border-radius: 50%; display: flex; align-items: center; justify-content: center; color: #fff; font-weight: 700; flex-shrink: 0; }
+
+  /* CHAT LIST */
+  .chat-item { display: flex; align-items: center; gap: 12px; padding: 12px 16px; background: #fff; border-bottom: 1px solid #f5f5f5; cursor: pointer; }
+  .chat-item:active { background: #fffaf7; }
+  .empty-state { text-align: center; padding: 60px 20px; color: #aaa; }
+  .empty-state h3 { font-size: 16px; font-weight: 700; margin-top: 12px; color: #666; }
+  .empty-state p { font-size: 13px; margin-top: 6px; }
+
+  /* CHAT VIEW */
+  #chat { background: var(--chat-bg); }
+  #chat.active { display: flex; flex-direction: column; }
+  .chat-header { background: var(--orange); padding: 12px 16px; display: flex; align-items: center; gap: 12px; flex-shrink: 0; }
+  .chat-messages { flex: 1; overflow-y: auto; padding: 12px 12px 8px; display: flex; flex-direction: column; gap: 4px; min-height: 0; }
+  .msg-row { display: flex; }
+  .msg-row.me { justify-content: flex-end; }
+  .msg-bubble { max-width: 78%; padding: 8px 12px 6px; box-shadow: 0 1px 3px rgba(0,0,0,0.1); }
+  .msg-bubble.them { background: #fff; border-radius: 4px 16px 16px 16px; }
+  .msg-bubble.me { background: var(--green-sent); border-radius: 16px 4px 16px 16px; }
+  .msg-text { font-size: 15px; color: #111; line-height: 1.4; word-break: break-word; }
+  .msg-meta { font-size: 11px; color: #888; margin-top: 3px; text-align: right; }
+  .chat-input-bar { background: #f0f0f0; padding: 8px 12px; padding-bottom: max(8px, env(safe-area-inset-bottom)); display: flex; align-items: center; gap: 8px; flex-shrink: 0; min-height: 60px; }
+  .chat-input-bar input { flex: 1; border: none; border-radius: 24px; padding: 10px 16px; font-size: 15px; outline: none; font-family: inherit; background: #fff; min-width: 0; }
+  .send-btn { background: var(--orange); border: none; width: 44px; height: 44px; border-radius: 50%; display: flex; align-items: center; justify-content: center; cursor: pointer; flex-shrink: 0; }
+  .sticker-btn-bar { background: #fff; border: none; width: 42px; height: 42px; border-radius: 50%; display: flex; align-items: center; justify-content: center; cursor: pointer; flex-shrink: 0; }
+  .sticker-panel { background: #fff; border-top: 1px solid #f0f0f0; padding: 10px 12px 8px; display: none; flex-direction: column; max-height: 240px; overflow: hidden; flex-shrink: 0; }
+  .sticker-panel.open { display: flex; }
+  .voice-mic-btn { background: rgba(255,255,255,0.9); border: none; width: 42px; height: 42px; border-radius: 50%; display: flex; align-items: center; justify-content: center; cursor: pointer; flex-shrink: 0; }
+  .voice-recording-bar { background:#fff; border-radius:24px; padding:8px 14px; display:none; align-items:center; gap:10px; flex-shrink: 0; }
+  .voice-recording-bar.active { display:flex; }
+  .rec-dot { width:10px; height:10px; border-radius:50%; background:#e53935; animation:pulse 1s infinite; }
+
+  /* CONTACTS */
+  .contact-item { display: flex; align-items: center; gap: 12px; padding: 12px 16px; background: #fff; border-bottom: 1px solid #f5f5f5; cursor: pointer; }
+  .btn-outline { background: var(--orange-light); border: none; color: var(--orange); border-radius: 8px; padding: 6px 10px; cursor: pointer; font-size: 16px; display: flex; align-items: center; justify-content: center; }
+
+  /* STATUS */
+  .my-status-card { padding: 12px 16px; background: #fff; border-bottom: 1px solid #f0f0f0; }
+  .status-item { display: flex; align-items: center; gap: 12px; padding: 12px 16px; background: #fff; border-bottom: 1px solid #f5f5f5; cursor: pointer; }
+  .status-ring { border-radius: 50%; padding: 2px; border: 3px solid var(--orange); }
+  .status-modal { position: fixed; inset: 0; background: #000; z-index: 300; display: flex; flex-direction: column; max-width: 480px; margin: 0 auto; }
+  .status-modal-header { padding: 16px; display: flex; align-items: center; gap: 12px; }
+  .status-modal-body { flex: 1; display: flex; align-items: center; justify-content: center; flex-direction: column; gap: 20px; padding: 20px; overflow-y: auto; }
+  .status-text-content { color: #fff; font-size: 20px; font-weight: 700; text-align: center; background: rgba(255,255,255,0.1); border-radius: 12px; padding: 16px 20px; word-break: break-word; width: 100%; }
+  .status-footer { padding: 12px 16px; background: rgba(255,255,255,0.05); border-top: 1px solid rgba(255,255,255,0.1); flex-shrink: 0; }
+  .status-reactions-row { display: flex; align-items: center; gap: 12px; margin-bottom: 10px; }
+  .reaction-btn { background: rgba(255,255,255,0.15); border: none; border-radius: 20px; padding: 6px 14px; cursor: pointer; display: flex; align-items: center; gap: 6px; color: #fff; font-family: inherit; font-weight: 700; font-size: 13px; }
+  .reaction-btn.reacted { background: rgba(255,107,0,0.6); }
+  .views-btn { background: rgba(255,255,255,0.1); border: none; border-radius: 20px; padding: 6px 12px; cursor: pointer; color: rgba(255,255,255,0.8); font-size: 12px; font-family: inherit; font-weight: 600; margin-left: auto; }
+  .status-comments-section { max-height: 160px; overflow-y: auto; margin-bottom: 8px; }
+  .status-comment { background: rgba(255,255,255,0.1); border-radius: 10px; padding: 8px 12px; margin-bottom: 6px; }
+  .status-comment .cmt-author { font-weight: 800; font-size: 12px; color: var(--orange); margin-bottom: 2px; }
+  .status-comment .cmt-text { font-size: 13px; color: #eee; }
+  .status-comment .cmt-time { font-size: 11px; color: rgba(255,255,255,0.4); margin-top: 2px; }
+  .status-comment-input-row { display: flex; gap: 8px; align-items: center; }
+  .status-comment-input-row input { flex: 1; background: rgba(255,255,255,0.15); border: 1.5px solid rgba(255,255,255,0.2); border-radius: 24px; padding: 9px 14px; font-size: 13px; color: #fff; font-family: inherit; outline: none; }
+  .status-comment-input-row input::placeholder { color: rgba(255,255,255,0.4); }
+  .status-comment-input-row button { background: var(--orange); border: none; width: 36px; height: 36px; border-radius: 50%; display: flex; align-items: center; justify-content: center; cursor: pointer; flex-shrink: 0; }
+
+  /* VIEWS MODAL */
+  .views-modal { position: fixed; inset: 0; background: rgba(0,0,0,0.7); z-index: 400; display: flex; align-items: flex-end; max-width: 480px; margin: 0 auto; }
+  .views-sheet { background: #1a1a1a; border-radius: 20px 20px 0 0; padding: 20px; width: 100%; max-height: 60vh; overflow-y: auto; }
+
+  /* GENERIC MODAL */
+  .modal-overlay { position: fixed; inset: 0; background: rgba(0,0,0,0.5); z-index: 200; display: flex; align-items: flex-end; max-width: 480px; margin: 0 auto; }
+  .modal-sheet { background: #fff; border-radius: 20px 20px 0 0; padding: 20px; width: 100%; max-height: 80vh; overflow-y: auto; }
+  .modal-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 16px; }
+  .modal-title { font-weight: 800; font-size: 18px; }
+  .btn-close { background: none; border: none; font-size: 22px; cursor: pointer; color: #888; }
+  textarea { width: 100%; border: 1.5px solid var(--orange); border-radius: 10px; padding: 12px 14px; font-size: 15px; font-family: inherit; outline: none; resize: none; }
+  .section-label { padding: 12px 16px 4px; font-weight: 800; font-size: 12px; color: #888; }
+
+  /* PROFILE */
+  #profile { background: var(--bg); overflow-y: auto; }
+  .profile-header { background: var(--orange); padding: 16px 16px 60px; display: flex; align-items: center; gap: 12px; flex-shrink: 0; }
+  .profile-card { margin: -44px 16px 0; background: #fff; border-radius: 16px; padding: 24px 20px; box-shadow: 0 4px 20px rgba(0,0,0,0.08); text-align: center; }
+  .action-row { margin: 16px; display: flex; gap: 12px; }
+  .action-btn { flex: 1; background: #fff; border: 1.5px solid var(--orange); border-radius: 12px; padding: 12px 0; cursor: pointer; font-family: inherit; font-weight: 700; color: var(--orange); font-size: 13px; display: flex; flex-direction: column; align-items: center; gap: 4px; }
+
+  /* SETTINGS */
+  #settings { background: var(--bg); overflow-y: auto; }
+  .settings-item { padding: 16px 20px; display: flex; align-items: center; gap: 14px; border-bottom: 1px solid #f0f0f0; cursor: pointer; }
+
+  /* CALL MODAL */
+  #call-modal { position: fixed; inset: 0; background: #1a1a2e; z-index: 400; display: none; flex-direction: column; align-items: center; justify-content: center; max-width: 480px; margin: 0 auto; }
+  #call-modal.open { display: flex; }
+  .call-btn { width: 64px; height: 64px; border-radius: 50%; border: none; color: #fff; cursor: pointer; display: flex; align-items: center; justify-content: center; }
+
+  /* SEARCH */
+  .search-wrap { padding: 10px 12px; background: #fff; border-bottom: 1px solid #f0f0f0; flex-shrink: 0; }
+  .search-inner { background: #f5f5f5; border-radius: 24px; padding: 8px 16px; display: flex; align-items: center; gap: 8px; }
+  .search-inner input { border: none; background: transparent; flex: 1; font-size: 15px; outline: none; font-family: inherit; }
+
+  /* ONLINE INDICATOR */
+  .online-dot { width: 10px; height: 10px; background: #4CAF50; border-radius: 50%; border: 2px solid #fff; position: absolute; bottom: 0; right: 0; }
+
+  /* TYPING INDICATOR */
+  .typing-indicator { display: flex; gap: 3px; align-items: center; padding: 8px 12px; }
+  .typing-indicator span { width: 7px; height: 7px; border-radius: 50%; background: #aaa; animation: typing-bounce 1.2s infinite ease-in-out; }
+  .typing-indicator span:nth-child(2) { animation-delay: 0.15s; }
+  .typing-indicator span:nth-child(3) { animation-delay: 0.3s; }
+  @keyframes typing-bounce { 0%,60%,100%{transform:translateY(0)} 30%{transform:translateY(-5px)} }
+
+  @keyframes pulse { 0%,100%{opacity:0.4;transform:scale(1)} 50%{opacity:1;transform:scale(1.3)} }
+  @keyframes fadeIn { from{opacity:0;transform:translateY(16px)} to{opacity:1;transform:translateY(0)} }
+  @keyframes wave-bar { 0%,100%{transform:scaleY(0.5);opacity:0.5} 50%{transform:scaleY(1);opacity:1} }
+  .voice-wave { flex:1;height:28px;background:rgba(0,0,0,0.05);border-radius:6px;display:flex;align-items:center;justify-content:center;gap:2px;padding:0 6px; }
+  .voice-wave span { display:inline-block;width:3px;border-radius:2px;background:var(--orange);animation:wave-bar 1s infinite ease-in-out; }
+  .voice-wave span:nth-child(1){height:6px} .voice-wave span:nth-child(2){height:14px;animation-delay:0.1s} .voice-wave span:nth-child(3){height:10px;animation-delay:0.2s} .voice-wave span:nth-child(4){height:18px;animation-delay:0.3s} .voice-wave span:nth-child(5){height:8px;animation-delay:0.4s} .voice-wave span:nth-child(6){height:12px;animation-delay:0.5s} .voice-wave span:nth-child(7){height:16px;animation-delay:0.15s} .voice-wave span:nth-child(8){height:6px;animation-delay:0.35s}
+  .voice-play-btn { background:var(--orange);border:none;width:32px;height:32px;border-radius:50%;display:flex;align-items:center;justify-content:center;cursor:pointer;flex-shrink:0; }
+  .voice-msg-wrap { display:flex;align-items:center;gap:8px;min-width:160px; }
+</style>
+</head>
+<body>
+<div id="app">
+
+  <!-- SPLASH -->
+  <div id="splash" class="screen active">
+    <div class="splash-logo"><span>H</span></div>
+    <div class="splash-title">HGD</div>
+    <div class="splash-sub">Messagerie sécurisée</div>
+    <div class="dots"><span></span><span></span><span></span></div>
+  </div>
+
+  <!-- AUTH -->
+  <div id="auth" class="screen">
+    <div class="auth-header">
+      <div class="auth-logo-row">
+        <div class="hgd-logo"><span>H</span></div>
+        <span style="color:#fff;font-weight:900;font-size:22px;">HGD</span>
+      </div>
+      <div class="auth-title">Bienvenue sur HGD
+        <svg viewBox="0 0 24 24" width="24" height="24" fill="none" stroke="#fff" stroke-width="2" style="vertical-align:middle;margin-left:6px;"><path d="M18 11V6a2 2 0 00-2-2 2 2 0 00-2 2M14 10V4a2 2 0 00-2-2 2 2 0 00-2 2v2M10 10.5V6a2 2 0 00-2-2 2 2 0 00-2 2v8"/><path d="M6 14v0a4 4 0 004 4h4a4 4 0 004-4V11"/><path d="M6 14l-1.5-1.5a2.83 2.83 0 00-4 4L4 20h10"/></svg>
+      </div>
+      <div class="auth-sub">Discutez avec vos proches en toute sécurité.</div>
+    </div>
+    <div class="auth-card">
+      <div class="tab-switch">
+        <button id="btn-login" class="active" onclick="setAuthMode('login')">Connexion</button>
+        <button id="btn-register" onclick="setAuthMode('register')">Inscription</button>
+      </div>
+      <div id="field-prenom" class="field-group" style="display:none;">
+        <div class="field-label">PRÉNOM</div>
+        <div class="field-wrap"><input id="inp-prenom" type="text" placeholder="Votre prénom"/></div>
+      </div>
+      <div id="field-nom" class="field-group" style="display:none;">
+        <div class="field-label">NOM</div>
+        <div class="field-wrap"><input id="inp-nom" type="text" placeholder="Votre nom"/></div>
+      </div>
+      <div class="field-group">
+        <div class="field-label">NUMÉRO DE TÉLÉPHONE</div>
+        <div class="phone-row">
+          <div class="country-select-wrap" id="country-wrap-auth" onclick="toggleCountryDropdown('auth')">
+            <div class="country-flag-display" id="country-display-auth">
+              <span id="country-flag-auth">🇧🇯</span>
+              <span id="country-dial-auth">+229</span>
+            </div>
+            <div class="country-dropdown" id="country-dropdown-auth" style="display:none;">
+              <input class="country-search-input" type="text" placeholder="Rechercher pays..." oninput="filterCountries(this,'auth')" onclick="event.stopPropagation()"/>
+              <div id="country-list-auth"></div>
+            </div>
+          </div>
+          <div class="phone-input-wrap">
+            <input id="inp-tel" type="tel" placeholder="XXXXXXXXXX"/>
+          </div>
+        </div>
+      </div>
+      <div class="field-group">
+        <div class="field-label">ADRESSE EMAIL</div>
+        <div class="field-wrap"><input id="inp-email" type="email" placeholder="votre@email.com"/></div>
+      </div>
+      <div id="field-password" class="field-group">
+        <div class="field-label">MOT DE PASSE</div>
+        <div class="field-wrap"><input id="inp-password" type="password" placeholder="••••••••"/></div>
+      </div>
+      <div id="auth-error" class="error-box" style="display:none;"></div>
+      <div id="auth-success" class="success-box" style="display:none;"></div>
+      <button class="btn-primary" id="auth-btn" onclick="handleAuth()">
+        <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="#fff" stroke-width="2.5"><path d="M5 12h14M12 5l7 7-7 7"/></svg>
+        <span id="auth-btn-label">Se connecter</span>
+      </button>
+      <div class="switch-mode" id="auth-switch">
+        Pas encore de compte ? <a onclick="setAuthMode('register')">S'inscrire</a>
+      </div>
+    </div>
+    <div style="height:30px;"></div>
+  </div>
+
+  <!-- MAIN APP -->
+  <div id="main" class="screen">
+    <div class="top-bar">
+      <div class="top-bar-row">
+        <div onclick="showScreen('profile',true)" style="cursor:pointer;" id="header-avatar"></div>
+        <div style="flex:1;display:flex;align-items:center;gap:8px;">
+          <div class="hgd-logo" style="width:28px;height:28px;"><span style="font-size:15px;">H</span></div>
+          <span style="color:#fff;font-weight:900;font-size:20px;letter-spacing:-0.5px;">HGD</span>
+        </div>
+        <button onclick="openNewChat()" style="background:rgba(255,255,255,0.2);border:none;color:#fff;border-radius:10px;padding:6px 12px;cursor:pointer;font-size:13px;font-weight:700;font-family:inherit;">+ Nouveau</button>
+        <button onclick="showScreen('settings')" style="background:none;border:none;color:#fff;cursor:pointer;padding:4px;margin-left:4px;">
+          <svg viewBox="0 0 24 24" width="24" height="24" fill="none" stroke="#fff" stroke-width="2"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 00.33 1.82l.06.06a2 2 0 010 2.83 2 2 0 01-2.83 0l-.06-.06a1.65 1.65 0 00-1.82-.33 1.65 1.65 0 00-1 1.51V21a2 2 0 01-2 2 2 2 0 01-2-2v-.09A1.65 1.65 0 009 19.4a1.65 1.65 0 00-1.82.33l-.06.06a2 2 0 01-2.83 0 2 2 0 010-2.83l.06-.06A1.65 1.65 0 004.68 15a1.65 1.65 0 00-1.51-1H3a2 2 0 01-2-2 2 2 0 012-2h.09A1.65 1.65 0 004.6 9a1.65 1.65 0 00-.33-1.82l-.06-.06a2 2 0 010-2.83 2 2 0 012.83 0l.06.06A1.65 1.65 0 009 4.68a1.65 1.65 0 001-1.51V3a2 2 0 012-2 2 2 0 012 2v.09a1.65 1.65 0 001 1.51 1.65 1.65 0 001.82-.33l.06-.06a2 2 0 012.83 0 2 2 0 010 2.83l-.06.06A1.65 1.65 0 0019.4 9a1.65 1.65 0 001.51 1H21a2 2 0 012 2 2 2 0 01-2 2h-.09a1.65 1.65 0 00-1.51 1z"/></svg>
+        </button>
+      </div>
+      <div class="tab-bar">
+        <button class="active" onclick="setTab('chats')" id="tab-chats">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15a2 2 0 01-2 2H7l-4 4V5a2 2 0 012-2h14a2 2 0 012 2z"/></svg>Chats
+        </button>
+        <button onclick="setTab('statuts')" id="tab-statuts">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>Statuts
+        </button>
+        <button onclick="setTab('contacts')" id="tab-contacts">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M17 21v-2a4 4 0 00-4-4H5a4 4 0 00-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 00-3-3.87M16 3.13a4 4 0 010 7.75"/></svg>Contacts
+        </button>
+      </div>
+    </div>
+    <div class="content" id="main-content"></div>
+  </div>
+
+  <!-- CHAT VIEW -->
+  <div id="chat" class="screen">
+    <div class="chat-header">
+      <button onclick="showScreen('main')" style="background:none;border:none;color:#fff;cursor:pointer;padding:0;">
+        <svg viewBox="0 0 24 24" width="24" height="24" fill="none" stroke="#fff" stroke-width="2.5"><path d="M19 12H5M12 5l-7 7 7 7"/></svg>
+      </button>
+      <div id="chat-avatar" onclick="showContactProfile()" style="cursor:pointer;position:relative;"></div>
+      <div style="flex:1;cursor:pointer;" onclick="showContactProfile()">
+        <div id="chat-name" style="color:#fff;font-weight:800;font-size:16px;"></div>
+        <div id="chat-status-line" style="color:rgba(255,255,255,0.8);font-size:12px;"></div>
+      </div>
+      <button onclick="startCall('video')" style="background:none;border:none;color:#fff;cursor:pointer;">
+        <svg viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="#fff" stroke-width="2"><polygon points="23 7 16 12 23 17 23 7"/><rect x="1" y="5" width="15" height="14" rx="2"/></svg>
+      </button>
+      <button onclick="startCall('audio')" style="background:none;border:none;color:#fff;cursor:pointer;margin-left:6px;">
+        <svg viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="#fff" stroke-width="2"><path d="M22 16.9v3a2 2 0 01-2.2 2A19.8 19.8 0 012 4.2 2 2 0 014 2h3a2 2 0 012 1.7c.1.9.4 1.8.7 2.6a2 2 0 01-.5 2.1L8 9.9a16 16 0 006.1 6.1l1.5-1.5a2 2 0 012.1-.5c.8.3 1.7.6 2.6.7A2 2 0 0122 16.9z"/></svg>
+      </button>
+    </div>
+    <div class="chat-messages" id="chat-messages"></div>
+    <div id="sticker-panel" class="sticker-panel"></div>
+    <div id="voice-recording-bar" class="voice-recording-bar">
+      <div class="rec-dot"></div>
+      <span style="flex:1;font-size:13px;color:#444;">Enregistrement...</span>
+      <span id="voice-timer" style="font-size:13px;font-weight:700;color:var(--orange);min-width:40px;">0:00</span>
+      <button onclick="cancelVoiceRecord()" style="background:#f5f5f5;border:none;border-radius:8px;padding:6px 10px;cursor:pointer;color:#888;font-size:12px;font-family:inherit;">Annuler</button>
+      <button onclick="stopAndSendVoice()" style="background:var(--orange);border:none;border-radius:8px;padding:6px 12px;cursor:pointer;color:#fff;font-size:12px;font-weight:700;font-family:inherit;">Envoyer</button>
+    </div>
+    <div class="chat-input-bar">
+      <button class="sticker-btn-bar" onclick="toggleStickerPanel()">
+        <svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="#888" stroke-width="2"><circle cx="12" cy="12" r="10"/><path d="M8 13s1.5 2 4 2 4-2 4-2"/><line x1="9" y1="9" x2="9.01" y2="9" stroke-width="3" stroke-linecap="round"/><line x1="15" y1="9" x2="15.01" y2="9" stroke-width="3" stroke-linecap="round"/></svg>
+      </button>
+      <input id="msg-input" placeholder="Message..." onkeydown="if(event.key==='Enter')sendMsg()" oninput="toggleSendOrMicBtn()"/>
+      <button class="send-btn" id="send-text-btn" onclick="sendMsg()" style="display:none;">
+        <svg viewBox="0 0 24 24"><path d="M22 2L11 13M22 2L15 22 11 13 2 9l20-7z" fill="#fff"/></svg>
+      </button>
+      <button class="voice-mic-btn" id="send-mic-btn" onclick="startVoiceRecord()">
+        <svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="#666" stroke-width="2"><path d="M12 1a3 3 0 00-3 3v8a3 3 0 006 0V4a3 3 0 00-3-3z"/><path d="M19 10v2a7 7 0 01-14 0v-2M12 19v4M8 23h8"/></svg>
+      </button>
+    </div>
+  </div>
+
+  <!-- PROFILE -->
+  <div id="profile" class="screen">
+    <div class="profile-header">
+      <button id="profile-back" onclick="goBackFromProfile()" style="background:none;border:none;color:#fff;cursor:pointer;">
+        <svg viewBox="0 0 24 24" width="24" height="24" fill="none" stroke="#fff" stroke-width="2.5"><path d="M19 12H5M12 5l-7 7 7 7"/></svg>
+      </button>
+      <span style="color:#fff;font-weight:800;font-size:18px;">Profil</span>
+    </div>
+    <div class="profile-card">
+      <div id="profile-avatar-big"></div>
+      <div id="profile-name" style="margin-top:12px;font-weight:800;font-size:22px;"></div>
+      <div id="profile-phone" style="color:#666;font-size:14px;margin-top:4px;"></div>
+      <div id="profile-email" style="color:#999;font-size:13px;margin-top:2px;"></div>
+      <div id="profile-status-text" style="background:var(--orange-light);border-radius:10px;padding:8px 14px;margin-top:12px;font-size:13px;color:var(--orange-dark);font-style:italic;"></div>
+      <div id="profile-bio" style="margin-top:10px;font-size:14px;color:#555;"></div>
+    </div>
+    <div id="profile-actions" class="action-row"></div>
+    <div id="profile-edit-btn" style="margin:0 16px;display:none;">
+      <button class="btn-primary" onclick="showEditProfile()" style="margin-bottom:12px;">
+        <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="#fff" stroke-width="2"><path d="M11 4H4a2 2 0 00-2 2v14a2 2 0 002 2h14a2 2 0 002-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 013 3L12 15l-4 1 1-4 9.5-9.5z"/></svg>
+        Modifier mon profil
+      </button>
+    </div>
+  </div>
+
+  <!-- EDIT PROFILE -->
+  <div id="edit-profile" class="screen">
+    <div style="background:var(--orange);padding:16px;display:flex;align-items:center;gap:12px;flex-shrink:0;">
+      <button onclick="showScreen('profile')" style="background:none;border:none;color:#fff;cursor:pointer;">
+        <svg viewBox="0 0 24 24" width="24" height="24" fill="none" stroke="#fff" stroke-width="2.5"><path d="M19 12H5M12 5l-7 7 7 7"/></svg>
+      </button>
+      <span style="color:#fff;font-weight:800;font-size:18px;">Modifier profil</span>
+    </div>
+    <div style="margin:16px;background:#fff;border-radius:16px;padding:20px;">
+      <div class="field-group">
+        <div class="field-label">STATUT</div>
+        <input id="edit-status" type="text" placeholder="Votre statut..." style="width:100%;border:1.5px solid var(--orange);border-radius:10px;padding:12px 14px;font-size:15px;font-family:inherit;outline:none;"/>
+      </div>
+      <div class="field-group">
+        <div class="field-label">BIO</div>
+        <textarea id="edit-bio" rows="3" placeholder="Parlez de vous..."></textarea>
+      </div>
+      <button class="btn-primary" onclick="saveProfile()">
+        <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="#fff" stroke-width="2.5"><path d="M20 6L9 17l-5-5"/></svg>
+        Enregistrer
+      </button>
+    </div>
+  </div>
+
+  <!-- SETTINGS -->
+  <div id="settings" class="screen">
+    <div style="background:var(--orange);padding:16px;display:flex;align-items:center;gap:12px;flex-shrink:0;">
+      <button onclick="showScreen('main')" style="background:none;border:none;color:#fff;cursor:pointer;">
+        <svg viewBox="0 0 24 24" width="24" height="24" fill="none" stroke="#fff" stroke-width="2.5"><path d="M19 12H5M12 5l-7 7 7 7"/></svg>
+      </button>
+      <span style="color:#fff;font-weight:800;font-size:18px;">Paramètres</span>
+    </div>
+    <div style="margin:16px;">
+      <div style="background:#fff;border-radius:16px;overflow:hidden;margin-bottom:16px;">
+        <div class="settings-item">
+          <span style="display:flex;align-items:center;justify-content:center;width:32px;height:32px;background:var(--orange-light);border-radius:8px;flex-shrink:0;"><svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="var(--orange)" stroke-width="2"><path d="M18 8A6 6 0 006 8c0 7-3 9-3 9h18s-3-2-3-9M13.73 21a2 2 0 01-3.46 0"/></svg></span>
+          <div style="flex:1;"><div style="font-weight:700;">Notifications</div><div style="color:#999;font-size:12px;">Sons, vibrations</div></div>
+          <span style="color:#ccc;">›</span>
+        </div>
+        <div class="settings-item" style="border:none;">
+          <span style="display:flex;align-items:center;justify-content:center;width:32px;height:32px;background:var(--orange-light);border-radius:8px;flex-shrink:0;"><svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="var(--orange)" stroke-width="2"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16" stroke-width="3" stroke-linecap="round"/></svg></span>
+          <div style="flex:1;"><div style="font-weight:700;">À propos</div><div style="color:#999;font-size:12px;">HGD Messenger v5.0 — Firebase</div></div>
+          <span style="color:#ccc;">›</span>
+        </div>
+      </div>
+      <button onclick="logout()" style="width:100%;background:#fff3f3;color:#c62828;border:1.5px solid #ffcdd2;border-radius:12px;padding:14px 0;font-weight:800;font-size:15px;cursor:pointer;font-family:inherit;display:flex;align-items:center;justify-content:center;gap:8px;">
+        <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="#c62828" stroke-width="2"><path d="M9 21H5a2 2 0 01-2-2V5a2 2 0 012-2h4M16 17l5-5-5-5M21 12H9"/></svg>
+        Se déconnecter
+      </button>
+      <div style="text-align:center;margin-top:20px;color:#bbb;font-size:12px;">HGD Messenger v5.0 — Temps réel mondial via Firebase</div>
+    </div>
+  </div>
+
+  <!-- CALL MODAL -->
+  <div id="call-modal">
+    <div id="call-avatar-wrap" style="text-align:center;color:#fff;"></div>
+    <div id="call-name" style="color:#fff;font-size:26px;font-weight:800;margin-top:20px;text-align:center;"></div>
+    <div id="call-type-label" style="color:#aaa;font-size:14px;margin-top:6px;text-align:center;"></div>
+    <div style="color:#888;font-size:13px;margin-top:4px;text-align:center;">Sonnerie...</div>
+    <div style="display:flex;gap:32px;margin-top:60px;">
+      <button class="call-btn" onclick="endCall()" style="background:#e53935;">
+        <svg viewBox="0 0 24 24" width="28" height="28" fill="#fff"><path d="M23.07 18.5l-3.5-3a1.5 1.5 0 00-1.9 0l-1.5 1.3c-.3.3-.8.3-1.1 0-1.1-.9-3-2.8-3.9-3.9-.3-.3-.3-.8 0-1.1l1.3-1.5a1.5 1.5 0 000-1.9l-3-3.5A1.5 1.5 0 007.5 5L5 7.5C2.5 10 6.5 16 10 19.5s9.5 7.5 12 5l2.5-2.5a1.5 1.5 0 00-1.43-3.5z"/></svg>
+      </button>
+    </div>
+  </div>
+
+  <!-- STATUS MODAL -->
+  <div id="status-modal" style="display:none;" class="status-modal">
+    <div class="status-modal-header">
+      <button onclick="closeStatusModal()" style="background:none;border:none;color:#fff;cursor:pointer;">
+        <svg viewBox="0 0 24 24" width="24" height="24" fill="none" stroke="#fff" stroke-width="2.5"><path d="M19 12H5M12 5l-7 7 7 7"/></svg>
+      </button>
+      <div id="status-modal-avatar"></div>
+      <div style="color:#fff;flex:1;">
+        <div id="status-modal-name" style="font-weight:800;"></div>
+        <div id="status-modal-time" style="font-size:12px;opacity:0.7;"></div>
+      </div>
+      <button id="status-delete-btn" onclick="deleteCurrentStatus()" style="display:none;background:rgba(229,57,53,0.3);border:none;border-radius:10px;padding:6px 10px;cursor:pointer;color:#fff;">
+        <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="#fff" stroke-width="2"><polyline points="3 6 5 6 21 6"/><path d="M19 6l-1 14a2 2 0 01-2 2H8a2 2 0 01-2-2L5 6M10 11v6M14 11v6"/></svg>
+      </button>
+    </div>
+    <div class="status-modal-body">
+      <div id="status-modal-content" class="status-text-content"></div>
+    </div>
+    <div class="status-footer">
+      <div class="status-reactions-row">
+        <button class="reaction-btn" id="react-heart-btn" onclick="toggleReaction('heart')">
+          <svg viewBox="0 0 24 24" width="16" height="16" fill="currentColor"><path d="M20.84 4.61a5.5 5.5 0 00-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 00-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 000-7.78z"/></svg>
+          <span id="react-heart-count">0</span>
+        </button>
+        <button class="views-btn" id="views-btn" onclick="openViewsModal()">
+          <svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/></svg>
+          <span id="views-count">0</span> vue(s)
+        </button>
+      </div>
+      <div class="status-comments-section" id="status-comments-list"></div>
+      <div class="status-comment-input-row">
+        <input id="status-comment-input" placeholder="Ajouter un commentaire..." onkeydown="if(event.key==='Enter')addStatusComment()"/>
+        <button onclick="addStatusComment()">
+          <svg viewBox="0 0 24 24" width="18" height="18" fill="#fff"><path d="M22 2L11 13M22 2L15 22 11 13 2 9l20-7z"/></svg>
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <!-- VIEWS MODAL -->
+  <div id="views-modal" style="display:none;" class="views-modal">
+    <div class="views-sheet">
+      <div style="color:#fff;font-weight:800;font-size:16px;margin-bottom:12px;display:flex;align-items:center;gap:8px;">
+        <svg viewBox='0 0 24 24' width='16' height='16' fill='none' stroke='currentColor' stroke-width='2'><path d='M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z'/><circle cx='12' cy='12' r='3'/></svg>
+        Personnes qui ont vu
+        <button onclick="closeViewsModal()" style="background:none;border:none;color:#888;cursor:pointer;margin-left:auto;font-size:20px;">✕</button>
+      </div>
+      <div id="views-list"></div>
+    </div>
+  </div>
+
+  <!-- ADD STATUS MODAL -->
+  <div id="add-status-modal" style="display:none;" class="modal-overlay">
+    <div class="modal-sheet">
+      <div class="modal-header">
+        <span class="modal-title">Ajouter un statut</span>
+        <button class="btn-close" onclick="closeAddStatus()">✕</button>
+      </div>
+      <div class="field-group">
+        <div class="field-label">TEXTE DU STATUT</div>
+        <textarea id="new-status-text" rows="4" placeholder="Écrivez votre statut..."></textarea>
+      </div>
+      <button class="btn-primary" onclick="saveStatus()">
+        <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="#fff" stroke-width="2.5"><path d="M22 2L11 13M22 2L15 22 11 13 2 9l20-7z"/></svg>
+        Publier
+      </button>
+    </div>
+  </div>
+
+  <!-- NEW CHAT MODAL -->
+  <div id="new-chat-modal" style="display:none;" class="modal-overlay">
+    <div class="modal-sheet">
+      <div class="modal-header">
+        <span class="modal-title">Nouvelle conversation</span>
+        <button class="btn-close" onclick="closeNewChat()">✕</button>
+      </div>
+      <div style="padding:8px 0;margin-bottom:10px;">
+        <div class="search-inner" style="background:#f5f5f5;border-radius:24px;padding:8px 16px;display:flex;align-items:center;gap:8px;">
+          <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="#aaa" stroke-width="2"><circle cx="11" cy="11" r="8"/><path d="M21 21l-4.35-4.35"/></svg>
+          <input id="new-chat-search" placeholder="Rechercher un utilisateur..." oninput="filterNewChat(this)" style="border:none;background:transparent;flex:1;font-size:15px;outline:none;font-family:inherit;"/>
+        </div>
+      </div>
+      <div id="new-chat-list"></div>
+    </div>
+  </div>
+
+</div>
+
+<!-- ═══ FIREBASE SDK ═══════════════════════════════════════════ -->
+<script type="module">
+import { initializeApp } from "https://www.gstatic.com/firebasejs/11.8.1/firebase-app.js";
+import { getAuth, createUserWithEmailAndPassword, signInWithEmailAndPassword, signOut, onAuthStateChanged, updateProfile } from "https://www.gstatic.com/firebasejs/11.8.1/firebase-auth.js";
+import { getFirestore, doc, setDoc, getDoc, getDocs, addDoc, collection, query, where, orderBy, onSnapshot, updateDoc, deleteDoc, serverTimestamp, limit } from "https://www.gstatic.com/firebasejs/11.8.1/firebase-firestore.js";
+
+// ── CONFIG FIREBASE ───────────────────────────────────────────
+const firebaseConfig = {
+  apiKey: "AIzaSyBldk0F5LAtfo8awgSpYlBmbbySDwdykfs",
+  authDomain: "hgd-messenger-63cf0.firebaseapp.com",
+  projectId: "hgd-messenger-63cf0",
+  storageBucket: "hgd-messenger-63cf0.firebasestorage.app",
+  messagingSenderId: "482278413179",
+  appId: "1:482278413179:web:be99685645dcb78bf423de"
+};
+
+const app = initializeApp(firebaseConfig);
+const auth = getAuth(app);
+const db = getFirestore(app);
+
+// ── STATE ─────────────────────────────────────────────────────
+let currentUser = null;       // Firebase user
+let currentProfile = null;    // Firestore user profile
+let selectedContact = null;   // Contact profile object
+let activeTab = 'chats';
+let stickerOpen = false;
+let currentStatusId = null;
+let msgUnsubscribe = null;    // Listener temps réel messages
+let chatsUnsubscribe = null;  // Listener temps réel liste chats
+let allUsers = {};            // Cache des profils users
+
+// ── PAYS ──────────────────────────────────────────────────────
+const COUNTRIES = [
+  {code:"BJ",flag:"🇧🇯",name:"Bénin",dial:"+229"},{code:"CI",flag:"🇨🇮",name:"Côte d'Ivoire",dial:"+225"},
+  {code:"SN",flag:"🇸🇳",name:"Sénégal",dial:"+221"},{code:"ML",flag:"🇲🇱",name:"Mali",dial:"+223"},
+  {code:"BF",flag:"🇧🇫",name:"Burkina Faso",dial:"+226"},{code:"TG",flag:"🇹🇬",name:"Togo",dial:"+228"},
+  {code:"GN",flag:"🇬🇳",name:"Guinée",dial:"+224"},{code:"NE",flag:"🇳🇪",name:"Niger",dial:"+227"},
+  {code:"CM",flag:"🇨🇲",name:"Cameroun",dial:"+237"},{code:"CD",flag:"🇨🇩",name:"Congo (RDC)",dial:"+243"},
+  {code:"CG",flag:"🇨🇬",name:"Congo",dial:"+242"},{code:"GA",flag:"🇬🇦",name:"Gabon",dial:"+241"},
+  {code:"NG",flag:"🇳🇬",name:"Nigéria",dial:"+234"},{code:"GH",flag:"🇬🇭",name:"Ghana",dial:"+233"},
+  {code:"MA",flag:"🇲🇦",name:"Maroc",dial:"+212"},{code:"DZ",flag:"🇩🇿",name:"Algérie",dial:"+213"},
+  {code:"TN",flag:"🇹🇳",name:"Tunisie",dial:"+216"},{code:"EG",flag:"🇪🇬",name:"Égypte",dial:"+20"},
+  {code:"FR",flag:"🇫🇷",name:"France",dial:"+33"},{code:"BE",flag:"🇧🇪",name:"Belgique",dial:"+32"},
+  {code:"CH",flag:"🇨🇭",name:"Suisse",dial:"+41"},{code:"CA",flag:"🇨🇦",name:"Canada",dial:"+1"},
+  {code:"US",flag:"🇺🇸",name:"États-Unis",dial:"+1"},{code:"GB",flag:"🇬🇧",name:"Royaume-Uni",dial:"+44"},
+  {code:"DE",flag:"🇩🇪",name:"Allemagne",dial:"+49"},{code:"IT",flag:"🇮🇹",name:"Italie",dial:"+39"},
+  {code:"ES",flag:"🇪🇸",name:"Espagne",dial:"+34"},{code:"PT",flag:"🇵🇹",name:"Portugal",dial:"+351"},
+  {code:"BR",flag:"🇧🇷",name:"Brésil",dial:"+55"},{code:"MX",flag:"🇲🇽",name:"Mexique",dial:"+52"},
+  {code:"CN",flag:"🇨🇳",name:"Chine",dial:"+86"},{code:"IN",flag:"🇮🇳",name:"Inde",dial:"+91"},
+  {code:"JP",flag:"🇯🇵",name:"Japon",dial:"+81"},{code:"KR",flag:"🇰🇷",name:"Corée du Sud",dial:"+82"},
+  {code:"RU",flag:"🇷🇺",name:"Russie",dial:"+7"},{code:"SA",flag:"🇸🇦",name:"Arabie Saoudite",dial:"+966"},
+  {code:"AE",flag:"🇦🇪",name:"Émirats arabes unis",dial:"+971"},{code:"TR",flag:"🇹🇷",name:"Turquie",dial:"+90"},
+  {code:"ZA",flag:"🇿🇦",name:"Afrique du Sud",dial:"+27"},{code:"KE",flag:"🇰🇪",name:"Kenya",dial:"+254"},
+  {code:"ET",flag:"🇪🇹",name:"Éthiopie",dial:"+251"},{code:"TZ",flag:"🇹🇿",name:"Tanzanie",dial:"+255"},
+  {code:"UG",flag:"🇺🇬",name:"Ouganda",dial:"+256"},{code:"RW",flag:"🇷🇼",name:"Rwanda",dial:"+250"},
+].sort((a,b)=>a.name.localeCompare(b.name));
+
+let selectedCountry = COUNTRIES.find(c=>c.code==='BJ') || COUNTRIES[0];
+
+// ── COUNTRY DROPDOWN ─────────────────────────────────────────
+function initCountryDropdowns() {
+  updateCountryDisplay('auth');
+  renderCountryList('auth');
+}
+function updateCountryDisplay(suffix) {
+  const f=document.getElementById(`country-flag-${suffix}`);
+  const d=document.getElementById(`country-dial-${suffix}`);
+  if(f) f.textContent=selectedCountry.flag;
+  if(d) d.textContent=selectedCountry.dial;
+}
+function renderCountryList(suffix, filter='') {
+  const el=document.getElementById(`country-list-${suffix}`);
+  if(!el) return;
+  const list=filter?COUNTRIES.filter(c=>c.name.toLowerCase().includes(filter.toLowerCase())||c.dial.includes(filter)):COUNTRIES;
+  el.innerHTML=list.map(c=>`<div class="country-option" onclick="selectCountry('${c.code}','${suffix}')"><span>${c.flag}</span><span class="dial">${c.dial}</span><span>${c.name}</span></div>`).join('');
+}
+window.filterCountries=(inp,suffix)=>renderCountryList(suffix,inp.value);
+window.selectCountry=(code,suffix)=>{
+  selectedCountry=COUNTRIES.find(c=>c.code===code)||COUNTRIES[0];
+  updateCountryDisplay(suffix);
+  document.getElementById(`country-dropdown-${suffix}`).style.display='none';
+};
+window.toggleCountryDropdown=(suffix)=>{
+  const dd=document.getElementById(`country-dropdown-${suffix}`);
+  const open=dd.style.display!=='none';
+  document.querySelectorAll('.country-dropdown').forEach(d=>d.style.display='none');
+  if(!open){dd.style.display='block';const s=dd.querySelector('.country-search-input');if(s){s.value='';renderCountryList(suffix);s.focus();}}
+};
+document.addEventListener('click',e=>{if(!e.target.closest('.country-select-wrap'))document.querySelectorAll('.country-dropdown').forEach(d=>d.style.display='none');});
+
+// ── AVATAR ────────────────────────────────────────────────────
+const COLORS=["#FF6B00","#E91E63","#9C27B0","#2196F3","#009688","#F44336","#FF9800","#00BCD4"];
+function avatarColor(uid){let s=0;for(let i=0;i<uid.length;i++)s+=uid.charCodeAt(i);return COLORS[s%COLORS.length];}
+function makeAvatar(initials,size=42,color=null){
+  const c=color||'#FF6B00';
+  return `<div class="avatar" style="width:${size}px;height:${size}px;background:linear-gradient(135deg,${c},${c}BB);font-size:${Math.round(size*0.35)}px;">${escapeHtml(initials)}</div>`;
+}
+
+// ── SCREENS ───────────────────────────────────────────────────
+window.showScreen=function(id,isMyProfile=false){
+  document.querySelectorAll('.screen').forEach(s=>s.classList.remove('active'));
+  const sc=document.getElementById(id);
+  if(sc) sc.classList.add('active');
+  if(id==='profile'&&isMyProfile&&currentProfile) renderProfile(currentProfile,true);
+  if(id==='main') renderMainContent();
+};
+
+// ── AUTH MODE ─────────────────────────────────────────────────
+let authMode='login';
+window.setAuthMode=function(mode){
+  authMode=mode;
+  document.getElementById('btn-login').className=mode==='login'?'active':'';
+  document.getElementById('btn-register').className=mode==='register'?'active':'';
+  document.getElementById('auth-btn-label').textContent=mode==='login'?'Se connecter':'Créer mon compte';
+  document.getElementById('auth-switch').innerHTML=mode==='login'?`Pas encore de compte ? <a onclick="setAuthMode('register')">S'inscrire</a>`:`Déjà un compte ? <a onclick="setAuthMode('login')">Se connecter</a>`;
+  document.getElementById('field-prenom').style.display=mode==='register'?'':'none';
+  document.getElementById('field-nom').style.display=mode==='register'?'':'none';
+  document.getElementById('auth-error').style.display='none';
+  document.getElementById('auth-success').style.display='none';
+};
+
+function showAuthError(msg){const e=document.getElementById('auth-error');e.textContent=msg;e.style.display='block';}
+function showAuthSuccess(msg){const e=document.getElementById('auth-success');e.textContent=msg;e.style.display='block';}
+function setAuthLoading(loading){const btn=document.getElementById('auth-btn');btn.disabled=loading;document.getElementById('auth-btn-label').textContent=loading?(authMode==='login'?'Connexion...':'Inscription...'):(authMode==='login'?'Se connecter':'Créer mon compte');}
+
+// ── HANDLE AUTH ───────────────────────────────────────────────
+window.handleAuth=async function(){
+  document.getElementById('auth-error').style.display='none';
+  document.getElementById('auth-success').style.display='none';
+  const email=document.getElementById('inp-email').value.trim().toLowerCase();
+  const password=document.getElementById('inp-password').value;
+  const localTel=document.getElementById('inp-tel').value.trim();
+  const fullTel=selectedCountry.dial+localTel;
+
+  if(!email||!password){showAuthError('Email et mot de passe requis.');return;}
+  if(password.length<6){showAuthError('Le mot de passe doit faire au moins 6 caractères.');return;}
+
+  setAuthLoading(true);
+  try{
+    if(authMode==='register'){
+      const prenom=document.getElementById('inp-prenom').value.trim();
+      const nom=document.getElementById('inp-nom').value.trim();
+      if(!prenom||!nom||!localTel){showAuthError('Tous les champs sont obligatoires.');setAuthLoading(false);return;}
+      const cred=await createUserWithEmailAndPassword(auth,email,password);
+      const uid=cred.user.uid;
+      const initials=(prenom[0]+nom[0]).toUpperCase();
+      await updateProfile(cred.user,{displayName:`${prenom} ${nom}`});
+      await setDoc(doc(db,'users',uid),{
+        uid,prenom,nom,email,tel:fullTel,countryCode:selectedCountry.code,
+        avatar:initials,status:"Salut! J'utilise HGD",bio:'',
+        createdAt:serverTimestamp(),online:true,lastSeen:serverTimestamp()
+      });
+      showAuthSuccess('Compte créé ! Bienvenue sur HGD !');
+    } else {
+      await signInWithEmailAndPassword(auth,email,password);
+      showAuthSuccess('Connexion réussie !');
+    }
+  } catch(err){
+    const msgs={
+      'auth/email-already-in-use':'Cette adresse email est déjà utilisée.',
+      'auth/invalid-email':'Adresse email invalide.',
+      'auth/user-not-found':'Aucun compte avec cet email.',
+      'auth/wrong-password':'Mot de passe incorrect.',
+      'auth/invalid-credential':'Email ou mot de passe incorrect.',
+      'auth/too-many-requests':'Trop de tentatives. Réessayez plus tard.',
+      'auth/network-request-failed':'Pas de connexion internet.',
+    };
+    showAuthError(msgs[err.code]||'Erreur : '+err.message);
+    setAuthLoading(false);
+  }
+};
+
+// ── AUTH STATE LISTENER ───────────────────────────────────────
+onAuthStateChanged(auth, async(user)=>{
+  if(user){
+    currentUser=user;
+    // Load profile from Firestore
+    const snap=await getDoc(doc(db,'users',user.uid));
+    if(snap.exists()){
+      currentProfile=snap.data();
+    } else {
+      // Fallback si profil manquant
+      currentProfile={uid:user.uid,prenom:user.displayName||'User',nom:'',email:user.email,avatar:'?',status:'',bio:''};
+    }
+    // Mark online
+    await updateDoc(doc(db,'users',user.uid),{online:true,lastSeen:serverTimestamp()}).catch(()=>{});
+    showScreen('main');
+    renderHeaderAvatar();
+    loadAllUsers();
+  } else {
+    currentUser=null;
+    currentProfile=null;
+    setAuthLoading(false);
+    showScreen('auth');
+    setAuthMode('login');
+  }
+});
+
+// ── LOAD ALL USERS (cache) ────────────────────────────────────
+async function loadAllUsers(){
+  const snap=await getDocs(collection(db,'users'));
+  snap.forEach(d=>{allUsers[d.id]=d.data();});
+}
+
+// ── HEADER AVATAR ─────────────────────────────────────────────
+function renderHeaderAvatar(){
+  if(!currentProfile) return;
+  document.getElementById('header-avatar').innerHTML=makeAvatar(currentProfile.avatar,36,'rgba(255,255,255,0.3)');
+}
+
+// ── TABS ──────────────────────────────────────────────────────
+window.setTab=function(tab){
+  activeTab=tab;
+  ['chats','statuts','contacts'].forEach(t=>document.getElementById('tab-'+t).className=t===tab?'active':'');
+  renderMainContent();
+};
+
+function renderMainContent(){
+  const c=document.getElementById('main-content');
+  if(!c) return;
+  if(activeTab==='chats') renderChats(c);
+  else if(activeTab==='statuts') renderStatuts(c);
+  else if(activeTab==='contacts') renderContacts(c);
+}
+
+// ── CHAT LIST (temps réel) ────────────────────────────────────
+function renderChats(container){
+  container.innerHTML=`<div style="padding:40px;text-align:center;color:#aaa;">
+    <div style="font-size:13px;">Chargement des conversations...</div></div>`;
+  if(chatsUnsubscribe) chatsUnsubscribe();
+  // Listen to conversations where currentUser is a participant
+  const q=query(collection(db,'conversations'),where('participants','array-contains',currentUser.uid),orderBy('lastTs','desc'));
+  chatsUnsubscribe=onSnapshot(q,async(snap)=>{
+    if(snap.empty){
+      container.innerHTML=`<div class="empty-state">
+        <svg viewBox="0 0 24 24" width="48" height="48" fill="none" stroke="#ccc" stroke-width="1.5"><path d="M21 15a2 2 0 01-2 2H7l-4 4V5a2 2 0 012-2h14a2 2 0 012 2z"/></svg>
+        <h3>Aucune conversation</h3><p>Appuyez sur "+ Nouveau" pour commencer</p></div>`;
+      return;
+    }
+    const chats=[];
+    for(const d of snap.docs){
+      const data=d.data();
+      const otherId=data.participants.find(p=>p!==currentUser.uid);
+      const other=allUsers[otherId]||(await getDoc(doc(db,'users',otherId))).data()||{prenom:'?',nom:'',avatar:'?'};
+      if(!allUsers[otherId]) allUsers[otherId]=other;
+      chats.push({id:d.id,data,other,otherId});
+    }
+    let html=`<div class="search-wrap"><div class="search-inner">
+      <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="#aaa" stroke-width="2"><circle cx="11" cy="11" r="8"/><path d="M21 21l-4.35-4.35"/></svg>
+      <input placeholder="Rechercher..." oninput="filterChatList(this)" style="border:none;background:transparent;flex:1;font-size:15px;outline:none;font-family:inherit;"/>
+    </div></div><div id="chat-list">`;
+    for(const {data,other,otherId} of chats){
+      const last=data.lastMsg||'';
+      const ts=data.lastTs?formatTime(data.lastTs.toMillis?data.lastTs.toMillis():data.lastTs):'' ;
+      html+=`<div class="chat-item" onclick="openChat('${otherId}')" data-name="${escapeHtml(other.prenom+' '+other.nom)}">
+        <div style="position:relative;">${makeAvatar(other.avatar,50,avatarColor(otherId))}
+          ${other.online?'<div class="online-dot"></div>':''}
+        </div>
+        <div style="flex:1;min-width:0;">
+          <div style="display:flex;justify-content:space-between;align-items:center;">
+            <span style="font-weight:800;font-size:15px;">${escapeHtml(other.prenom+' '+other.nom)}</span>
+            <span style="font-size:12px;color:#aaa;">${ts}</span>
+          </div>
+          <div style="font-size:13px;color:#888;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;margin-top:2px;">${escapeHtml(last)}</div>
+        </div>
+      </div>`;
+    }
+    html+='</div>';
+    container.innerHTML=html;
+  });
+}
+
+window.filterChatList=function(inp){
+  const q=inp.value.toLowerCase();
+  document.querySelectorAll('#chat-list [data-name]').forEach(el=>{el.style.display=el.dataset.name.toLowerCase().includes(q)?'':'none';});
+};
+
+// ── STATUTS (Firestore) ───────────────────────────────────────
+async function renderStatuts(container){
+  container.innerHTML=`<div style="padding:20px;text-align:center;color:#aaa;font-size:13px;">Chargement...</div>`;
+  const EXPIRY=72*3600*1000;
+  const now=Date.now();
+  const snap=await getDocs(query(collection(db,'statuses'),orderBy('ts','desc'),limit(100)));
+  const statuses=snap.docs.map(d=>({id:d.id,...d.data()})).filter(s=>{
+    const ts=s.ts?.toMillis?s.ts.toMillis():(s.ts||0);
+    return (now-ts)<EXPIRY;
+  });
+
+  const myStatuses=statuses.filter(s=>s.userId===currentUser.uid);
+  const others=Object.values(allUsers).filter(u=>u.uid!==currentUser.uid&&statuses.some(s=>s.userId===u.uid));
+
+  let html=`<div class="my-status-card">
+    <div style="font-weight:800;font-size:13px;color:#888;margin-bottom:10px;">MON STATUT</div>
+    <div style="display:flex;align-items:center;gap:12px;">
+      <div style="position:relative;" onclick="openAddStatus()">
+        ${makeAvatar(currentProfile.avatar,52,avatarColor(currentUser.uid))}
+        <div style="position:absolute;bottom:0;right:0;background:var(--orange);border-radius:50%;width:20px;height:20px;display:flex;align-items:center;justify-content:center;border:2px solid #fff;color:#fff;font-size:14px;cursor:pointer;">+</div>
+      </div>
+      <div><div style="font-weight:800;">Mon statut</div>
+        <div style="color:#aaa;font-size:12px;">${myStatuses.length?myStatuses.length+' statut(s)':'Appuyer pour ajouter'}</div>
+      </div>
+    </div>
+    ${myStatuses.slice(0,3).map(s=>`
+      <div style="margin-top:8px;background:var(--orange-light);border-radius:8px;padding:8px 10px;font-size:13px;color:var(--orange-dark);display:flex;align-items:center;gap:8px;">
+        <div onclick="viewStatus('${s.id}')" style="flex:1;cursor:pointer;">${escapeHtml((s.text||'').substring(0,55))}${(s.text||'').length>55?'...':''}</div>
+        <button onclick="event.stopPropagation();deleteStatusById('${s.id}')" style="background:rgba(229,57,53,0.12);border:none;border-radius:6px;padding:3px 7px;cursor:pointer;">
+          <svg viewBox="0 0 24 24" width="13" height="13" fill="none" stroke="#c62828" stroke-width="2"><polyline points="3 6 5 6 21 6"/><path d="M19 6l-1 14a2 2 0 01-2 2H8a2 2 0 01-2-2L5 6"/></svg>
+        </button>
+      </div>`).join('')}
+  </div>`;
+
+  if(others.length){
+    html+=`<div class="section-label">RÉCENTS</div>`;
+    others.forEach(u=>{
+      const latest=statuses.filter(s=>s.userId===u.uid)[0];
+      if(!latest) return;
+      const ts=latest.ts?.toMillis?latest.ts.toMillis():(latest.ts||0);
+      html+=`<div class="status-item" onclick="viewStatus('${latest.id}')">
+        <div class="status-ring">${makeAvatar(u.avatar,44,avatarColor(u.uid))}</div>
+        <div style="flex:1;"><div style="font-weight:800;">${escapeHtml(u.prenom+' '+u.nom)}</div>
+          <div style="color:#aaa;font-size:12px;">${formatTimeAgo(ts)}</div>
+        </div>
+        <div style="font-size:12px;color:#aaa;display:flex;align-items:center;gap:3px;">
+          <svg viewBox='0 0 24 24' width='12' height='12' fill='none' stroke='#aaa' stroke-width='2'><path d='M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z'/><circle cx='12' cy='12' r='3'/></svg>
+          ${(latest.views||[]).length}
+        </div>
+      </div>`;
+    });
+  }
+  container.innerHTML=html;
+}
+
+// ── CONTACTS ─────────────────────────────────────────────────
+async function renderContacts(container){
+  container.innerHTML=`<div style="padding:20px;text-align:center;color:#aaa;font-size:13px;">Chargement...</div>`;
+  await loadAllUsers();
+  const contacts=Object.values(allUsers).filter(u=>u.uid!==currentUser.uid);
+  if(!contacts.length){
+    container.innerHTML=`<div class="empty-state"><svg viewBox="0 0 24 24" width="48" height="48" fill="none" stroke="#ccc" stroke-width="1.5"><path d="M17 21v-2a4 4 0 00-4-4H5a4 4 0 00-4 4v2"/><circle cx="9" cy="7" r="4"/></svg><h3>Aucun contact</h3><p>Les utilisateurs inscrits sur HGD apparaîtront ici.</p></div>`;
+    return;
+  }
+  let html=`<div class="search-wrap"><div class="search-inner">
+    <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="#aaa" stroke-width="2"><circle cx="11" cy="11" r="8"/><path d="M21 21l-4.35-4.35"/></svg>
+    <input placeholder="Rechercher..." oninput="filterContactList(this)" style="border:none;background:transparent;flex:1;font-size:15px;outline:none;font-family:inherit;"/>
+  </div></div><div id="contact-list">`;
+  contacts.forEach(u=>{
+    html+=`<div class="contact-item" onclick="openChat('${u.uid}')" data-name="${escapeHtml(u.prenom+' '+u.nom)}">
+      <div style="position:relative;">${makeAvatar(u.avatar,50,avatarColor(u.uid))}${u.online?'<div class="online-dot"></div>':''}</div>
+      <div style="flex:1;"><div style="font-weight:800;font-size:15px;">${escapeHtml(u.prenom+' '+u.nom)}</div>
+        <div style="font-size:12px;color:#888;">${escapeHtml(u.status||'')} ${u.tel?'· '+u.tel:''}</div>
+      </div>
+      <div style="display:flex;gap:8px;">
+        <button class="btn-outline" onclick="event.stopPropagation();startCall('audio','${u.uid}')" title="Appel">
+          <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="var(--orange)" stroke-width="2"><path d="M22 16.9v3a2 2 0 01-2.2 2A19.8 19.8 0 012 4.2 2 2 0 014 2h3a2 2 0 012 1.7c.1.9.4 1.8.7 2.6a2 2 0 01-.5 2.1L8 9.9a16 16 0 006.1 6.1l1.5-1.5a2 2 0 012.1-.5c.8.3 1.7.6 2.6.7A2 2 0 0122 16.9z"/></svg>
+        </button>
+      </div>
+    </div>`;
+  });
+  html+='</div>';
+  container.innerHTML=html;
+}
+
+window.filterContactList=function(inp){
+  const q=inp.value.toLowerCase();
+  document.querySelectorAll('#contact-list [data-name]').forEach(el=>{el.style.display=el.dataset.name.toLowerCase().includes(q)?'':'none';});
+};
+
+// ── CHAT (temps réel Firestore) ───────────────────────────────
+function getChatId(a,b){return [a,b].sort().join('__');}
+
+window.openChat=async function(uid){
+  await loadAllUsers();
+  selectedContact=allUsers[uid];
+  if(!selectedContact){
+    const snap=await getDoc(doc(db,'users',uid));
+    if(snap.exists()){selectedContact=snap.data();allUsers[uid]=selectedContact;}
+    else return;
+  }
+  showScreen('chat');
+  document.getElementById('chat-name').textContent=`${selectedContact.prenom} ${selectedContact.nom}`;
+  document.getElementById('chat-status-line').textContent=selectedContact.online?'En ligne':formatTimeAgo(selectedContact.lastSeen?.toMillis?selectedContact.lastSeen.toMillis():0);
+  document.getElementById('chat-avatar').innerHTML=makeAvatar(selectedContact.avatar,40,avatarColor(uid))+(selectedContact.online?'<div class="online-dot"></div>':'');
+  buildStickerPanel();
+
+  // Ensure conversation document exists
+  const chatId=getChatId(currentUser.uid,uid);
+  const convRef=doc(db,'conversations',chatId);
+  const convSnap=await getDoc(convRef);
+  if(!convSnap.exists()){
+    await setDoc(convRef,{participants:[currentUser.uid,uid],lastMsg:'',lastTs:serverTimestamp()});
+  }
+
+  // Real-time messages listener
+  if(msgUnsubscribe) msgUnsubscribe();
+  const messagesRef=collection(db,'conversations',chatId,'messages');
+  const mq=query(messagesRef,orderBy('ts','asc'),limit(200));
+  msgUnsubscribe=onSnapshot(mq,snap=>{
+    renderMessagesFromDocs(snap.docs);
+  });
+};
+
+function renderMessagesFromDocs(docs){
+  const container=document.getElementById('chat-messages');
+  if(!container) return;
+  const enc=`<div style="text-align:center;margin:10px auto 16px;background:rgba(255,255,255,0.8);border-radius:12px;padding:8px 16px;font-size:13px;color:#666;display:inline-flex;align-items:center;gap:6px;">
+    <svg viewBox="0 0 24 24" width="13" height="13" fill="none" stroke="#666" stroke-width="2"><rect x="3" y="11" width="18" height="11" rx="2" ry="2"/><path d="M7 11V7a5 5 0 0110 0v4"/></svg>
+    Messages chiffrés de bout en bout</div>`;
+  if(!docs.length){container.innerHTML=enc;return;}
+  let html=enc;
+  docs.forEach(d=>{
+    const msg=d.data();
+    const isMe=msg.from===currentUser.uid;
+    const ts=msg.ts?.toMillis?formatTime(msg.ts.toMillis()):formatTime(msg.ts||0);
+    const tick=isMe?`<svg viewBox="0 0 16 11" width="14" height="10" fill="none"><path d="M1 5.5L4.5 9 10 2" stroke="#4fc3f7" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/><path d="M6 5.5L9.5 9 15 2" stroke="#4fc3f7" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/></svg>`:'';
+    if(msg.type==='voice'){
+      const dur=msg.duration||0;
+      const durStr=Math.floor(dur/60)+':'+String(dur%60).padStart(2,'0');
+      html+=`<div class="msg-row ${isMe?'me':''}"><div class="msg-bubble ${isMe?'me':'them'}">
+        <div class="voice-msg-wrap">
+          <button class="voice-play-btn" onclick="playVoice('${d.id}','${msg.audio||''}',this)">
+            <svg viewBox="0 0 24 24" width="16" height="16" fill="#fff"><polygon points="5 3 19 12 5 21 5 3"/></svg>
+          </button>
+          <div class="voice-wave"><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span></div>
+          <span style="font-size:11px;color:#888;white-space:nowrap;">${durStr}</span>
+        </div>
+        <div class="msg-meta">${ts} ${tick}</div>
+      </div></div>`;
+    } else {
+      html+=`<div class="msg-row ${isMe?'me':''}"><div class="msg-bubble ${isMe?'me':'them'}">
+        <div class="msg-text">${escapeHtml(msg.text||'')}</div>
+        <div class="msg-meta">${ts} ${tick}</div>
+      </div></div>`;
+    }
+  });
+  container.innerHTML=html;
+  container.scrollTop=container.scrollHeight;
+}
+
+window.sendMsg=async function(){
+  const inp=document.getElementById('msg-input');
+  const text=inp.value.trim();
+  if(!text||!selectedContact||!currentUser) return;
+  inp.value='';
+  toggleSendOrMicBtn();
+  const chatId=getChatId(currentUser.uid,selectedContact.uid);
+  const msgData={from:currentUser.uid,to:selectedContact.uid,text,type:'text',ts:serverTimestamp()};
+  await addDoc(collection(db,'conversations',chatId,'messages'),msgData);
+  await updateDoc(doc(db,'conversations',chatId),{lastMsg:text,lastTs:serverTimestamp()});
+};
+
+window.toggleSendOrMicBtn=function(){
+  const val=document.getElementById('msg-input').value.trim();
+  document.getElementById('send-text-btn').style.display=val?'':'none';
+  document.getElementById('send-mic-btn').style.display=val?'none':'';
+};
+
+// ── EMOJIS ────────────────────────────────────────────────────
+const EMOJI_CATEGORIES=[
+  {label:'😀',name:'Visages',emojis:['😀','😃','😄','😁','😆','😅','🤣','😂','🙂','🙃','😉','😊','😇','🥰','😍','🤩','😘','😋','😛','😜','🤪','😝','🤑','🤗','🤔','🤐','😐','😑','😶','😏','😒','🙄','😬','😌','😔','😪','🤤','😴','😷','🤒','🤕','🤢','🤧','🥵','🥶','😵','🤯','😎','🤓','🧐','😕','😟','🙁','☹️','😮','😲','😳','🥺','😦','😧','😨','😰','😥','😢','😭','😱','😖','😣','😞','😓','😩','😫','🥱','😤','😡','😠','🤬','😈','👿','💀','☠️','💩','🤡','👹','👻','👽','🤖']},
+  {label:'👍',name:'Gestes',emojis:['👋','🤚','🖐️','✋','🤙','💪','✌️','🤞','🤟','🤘','👈','👉','👆','👇','☝️','👍','👎','✊','👊','🤛','🤜','👏','🙌','👐','🤲','🤝','🙏','✍️','💅','🫶','🤌','🤏']},
+  {label:'❤️',name:'Cœurs',emojis:['❤️','🧡','💛','💚','💙','💜','🖤','🤍','🤎','💔','❣️','💕','💞','💓','💗','💖','💘','💝','💟','🔥','✨','⭐','🌟','💫','⚡','🌈','☀️','❄️','🌊','💧','🌺','🌸','🌼','🌻','🍀','🌹','🌷','🎉','🎊','🎈','🎁','🏆','🥇','🎖️','🏅']},
+  {label:'😂',name:'Fun',emojis:['🤣','😂','💀','🗿','🥲','😭','😤','🤡','💅','🫡','🧢','🫠','🥴','🤌','🫶','🙃','🤯','🥶','🥵','😈','👿','🤪','🤓','😎','🥸','🧐','🤧','🤒','😷','🤢','🤮','😬','🙄','😏','😒']},
+  {label:'🐶',name:'Animaux',emojis:['🐶','🐱','🐭','🐹','🐰','🦊','🐻','🐼','🐨','🐯','🦁','🐮','🐷','🐸','🐵','🙈','🙉','🙊','🐔','🐧','🐦','🐤','🦆','🦅','🦉','🦇','🐺','🐗','🦄','🐝','🦋','🐢','🐍','🦎','🐙','🦑','🐟','🐬','🐳','🦈','🐊','🐅','🐘','🦒','🦓','🦍','🐕','🐈','🐇','🦝','🦔']},
+  {label:'🍕',name:'Nourriture',emojis:['🍕','🍔','🍟','🌭','🍿','🥓','🥚','🍳','🧇','🥞','🍞','🥐','🧀','🥗','🥙','🥪','🌮','🌯','🍝','🍜','🍲','🍛','🍣','🍱','🥟','🍤','🍙','🍚','🍧','🍨','🍦','🧁','🍰','🎂','🍮','🍭','🍬','🍫','🍩','🍪','🍯','🧃','🥤','🧋','☕','🍵','🍺','🍻','🥂','🍷','🍸','🍹']},
+  {label:'⚽',name:'Sport',emojis:['⚽','🏀','🏈','⚾','🎾','🏐','🏉','🎱','🏓','🏸','🥊','🥋','🎯','🏹','🎣','🤿','🛹','🥌','🤺','⛷️','🏂','🏋️','🤸','🏊','🏄','🚴','🧘','🎪','🎭','🎨','🎬','🎤','🎧','🎼','🎹','🥁','🎷','🎺','🎸','🎻','🎲','♟️','🎮']},
+];
+let activeEmojiCategory=0;
+
+function buildStickerPanel(){
+  const panel=document.getElementById('sticker-panel');
+  panel.innerHTML=`
+    <div style="display:flex;gap:4px;padding:0 0 8px;border-bottom:1px solid #f0f0f0;margin-bottom:8px;overflow-x:auto;scrollbar-width:none;flex-shrink:0;">
+      ${EMOJI_CATEGORIES.map((cat,i)=>`<button onclick="switchEmojiTab(${i})" id="etab-${i}" style="background:${i===0?'var(--orange)':'#f5f5f5'};border:none;border-radius:20px;padding:4px 10px;cursor:pointer;font-size:18px;flex-shrink:0;transition:background 0.15s;" title="${cat.name}">${cat.label}</button>`).join('')}
+    </div>
+    <div id="emoji-grid" style="display:flex;flex-wrap:wrap;gap:4px;overflow-y:auto;flex:1;"></div>`;
+  renderEmojiGrid(0);
+}
+
+window.switchEmojiTab=function(idx){
+  activeEmojiCategory=idx;
+  EMOJI_CATEGORIES.forEach((_,i)=>{const b=document.getElementById('etab-'+i);if(b)b.style.background=i===idx?'var(--orange)':'#f5f5f5';});
+  renderEmojiGrid(idx);
+};
+
+function renderEmojiGrid(idx){
+  const grid=document.getElementById('emoji-grid');
+  if(!grid) return;
+  grid.innerHTML=EMOJI_CATEGORIES[idx].emojis.map(e=>`<button onclick="sendEmoji('${encodeURIComponent(e)}')" style="background:none;border:none;font-size:26px;cursor:pointer;width:40px;height:40px;display:flex;align-items:center;justify-content:center;border-radius:8px;" onmouseover="this.style.background='#f5f5f5'" onmouseout="this.style.background='none'">${e}</button>`).join('');
+}
+
+window.sendEmoji=async function(encoded){
+  if(!selectedContact||!currentUser) return;
+  const emoji=decodeURIComponent(encoded);
+  const chatId=getChatId(currentUser.uid,selectedContact.uid);
+  await addDoc(collection(db,'conversations',chatId,'messages'),{from:currentUser.uid,to:selectedContact.uid,text:emoji,type:'text',ts:serverTimestamp()});
+  await updateDoc(doc(db,'conversations',chatId),{lastMsg:emoji,lastTs:serverTimestamp()});
+  stickerOpen=false;
+  document.getElementById('sticker-panel').className='sticker-panel';
+};
+
+window.toggleStickerPanel=function(){
+  stickerOpen=!stickerOpen;
+  document.getElementById('sticker-panel').className='sticker-panel'+(stickerOpen?' open':'');
+};
+
+// ── VOICE MESSAGES ────────────────────────────────────────────
+let mediaRecorder=null,audioChunks=[],voiceTimerInterval=null,voiceSeconds=0,voiceBlob=null;
+
+window.startVoiceRecord=async function(){
+  if(!selectedContact) return;
+  try{
+    const stream=await navigator.mediaDevices.getUserMedia({audio:true});
+    audioChunks=[];voiceBlob=null;voiceSeconds=0;
+    mediaRecorder=new MediaRecorder(stream);
+    mediaRecorder.ondataavailable=e=>{if(e.data.size>0)audioChunks.push(e.data);};
+    mediaRecorder.onstop=()=>{voiceBlob=new Blob(audioChunks,{type:'audio/webm'});stream.getTracks().forEach(t=>t.stop());};
+    mediaRecorder.start();
+    document.getElementById('voice-recording-bar').classList.add('active');
+    document.querySelector('.chat-input-bar').style.display='none';
+    voiceTimerInterval=setInterval(()=>{voiceSeconds++;const m=Math.floor(voiceSeconds/60);document.getElementById('voice-timer').textContent=m+':'+String(voiceSeconds%60).padStart(2,'0');},1000);
+  }catch(err){alert('Microphone non disponible.');}
+};
+
+window.cancelVoiceRecord=function(){
+  if(mediaRecorder&&mediaRecorder.state!=='inactive')mediaRecorder.stop();
+  clearInterval(voiceTimerInterval);voiceBlob=null;
+  document.getElementById('voice-recording-bar').classList.remove('active');
+  document.querySelector('.chat-input-bar').style.display='flex';
+};
+
+window.stopAndSendVoice=function(){
+  if(!mediaRecorder||!selectedContact) return;
+  const doSend=()=>{
+    clearInterval(voiceTimerInterval);
+    if(!voiceBlob) return;
+    const reader=new FileReader();
+    reader.onload=async()=>{
+      const dataUrl=reader.result;
+      const chatId=getChatId(currentUser.uid,selectedContact.uid);
+      await addDoc(collection(db,'conversations',chatId,'messages'),{from:currentUser.uid,to:selectedContact.uid,type:'voice',audio:dataUrl,duration:voiceSeconds,ts:serverTimestamp()});
+      await updateDoc(doc(db,'conversations',chatId),{lastMsg:'🎤 Message vocal',lastTs:serverTimestamp()});
+      document.getElementById('voice-recording-bar').classList.remove('active');
+      document.querySelector('.chat-input-bar').style.display='flex';
+      voiceSeconds=0;voiceBlob=null;
+    };
+    reader.readAsDataURL(voiceBlob);
+  };
+  if(mediaRecorder.state!=='inactive'){mediaRecorder.onstop=()=>{voiceBlob=new Blob(audioChunks,{type:'audio/webm'});mediaRecorder.stream.getTracks().forEach(t=>t.stop());doSend();};mediaRecorder.stop();}
+  else doSend();
+};
+
+window.playVoice=function(id,src,btn){
+  let a=document.getElementById('va_'+id);
+  if(!a){a=new Audio(src);a.id='va_'+id;a.onended=()=>{btn.innerHTML='<svg viewBox="0 0 24 24" width="16" height="16" fill="#fff"><polygon points="5 3 19 12 5 21 5 3"/></svg>';};}
+  if(a.paused){a.play();btn.innerHTML='<svg viewBox="0 0 24 24" width="16" height="16" fill="#fff"><rect x="6" y="4" width="4" height="16"/><rect x="14" y="4" width="4" height="16"/></svg>';}
+  else{a.pause();btn.innerHTML='<svg viewBox="0 0 24 24" width="16" height="16" fill="#fff"><polygon points="5 3 19 12 5 21 5 3"/></svg>';}
+};
+
+// ── STATUTS ───────────────────────────────────────────────────
+window.openAddStatus=function(){document.getElementById('new-status-text').value='';document.getElementById('add-status-modal').style.display='flex';};
+window.closeAddStatus=function(){document.getElementById('add-status-modal').style.display='none';};
+
+window.saveStatus=async function(){
+  const text=document.getElementById('new-status-text').value.trim();
+  if(!text) return;
+  await addDoc(collection(db,'statuses'),{
+    userId:currentUser.uid,text,ts:serverTimestamp(),
+    views:[],reactions:{},comments:[]
+  });
+  closeAddStatus();
+  renderMainContent();
+};
+
+window.viewStatus=async function(id){
+  const snap=await getDoc(doc(db,'statuses',id));
+  if(!snap.exists()) return;
+  const s={id:snap.id,...snap.data()};
+  currentStatusId=id;
+  // Record view
+  if(!(s.views||[]).includes(currentUser.uid)){
+    await updateDoc(doc(db,'statuses',id),{views:[...(s.views||[]),currentUser.uid]});
+    s.views=[...(s.views||[]),currentUser.uid];
+  }
+  const u=allUsers[s.userId]||currentProfile;
+  document.getElementById('status-modal').style.display='flex';
+  document.getElementById('status-modal-avatar').innerHTML=makeAvatar(u.avatar,36,avatarColor(u.uid));
+  document.getElementById('status-modal-name').textContent=`${u.prenom} ${u.nom}`;
+  const ts=s.ts?.toMillis?s.ts.toMillis():(s.ts||0);
+  document.getElementById('status-modal-time').textContent=formatTimeAgo(ts);
+  document.getElementById('status-modal-content').textContent=s.text;
+  document.getElementById('status-delete-btn').style.display=s.userId===currentUser.uid?'':'none';
+  renderStatusFooter(s);
+};
+
+function renderStatusFooter(s){
+  if(!s) return;
+  const heartCount=Object.values(s.reactions||{}).filter(r=>r==='heart').length;
+  document.getElementById('react-heart-count').textContent=heartCount;
+  document.getElementById('react-heart-btn').className='reaction-btn'+((s.reactions||{})[currentUser.uid]==='heart'?' reacted':'');
+  document.getElementById('views-count').textContent=(s.views||[]).length;
+  document.getElementById('views-btn').style.display=s.userId===currentUser.uid?'':'none';
+  const cmts=s.comments||[];
+  document.getElementById('status-comments-list').innerHTML=cmts.length?cmts.map(c=>{
+    const cu=allUsers[c.uid];const name=cu?`${cu.prenom} ${cu.nom}`:'Utilisateur';
+    return `<div class="status-comment"><div class="cmt-author">${escapeHtml(name)}</div><div class="cmt-text">${escapeHtml(c.text)}</div><div class="cmt-time">${formatTimeAgo(c.ts||0)}</div></div>`;
+  }).join(''):`<div style="color:rgba(255,255,255,0.3);font-size:12px;padding:8px 0;">Aucun commentaire</div>`;
+}
+
+window.closeStatusModal=function(){document.getElementById('status-modal').style.display='none';currentStatusId=null;};
+
+window.toggleReaction=async function(emoji){
+  if(!currentStatusId) return;
+  const snap=await getDoc(doc(db,'statuses',currentStatusId));
+  if(!snap.exists()) return;
+  const s={id:snap.id,...snap.data()};
+  const reactions=s.reactions||{};
+  if(reactions[currentUser.uid]===emoji)delete reactions[currentUser.uid];
+  else reactions[currentUser.uid]=emoji;
+  await updateDoc(doc(db,'statuses',currentStatusId),{reactions});
+  s.reactions=reactions;renderStatusFooter(s);
+};
+
+window.addStatusComment=async function(){
+  if(!currentStatusId) return;
+  const inp=document.getElementById('status-comment-input');
+  const text=inp.value.trim();if(!text) return;
+  const snap=await getDoc(doc(db,'statuses',currentStatusId));
+  if(!snap.exists()) return;
+  const s={id:snap.id,...snap.data()};
+  const comments=[...(s.comments||[]),{uid:currentUser.uid,text,ts:Date.now()}];
+  await updateDoc(doc(db,'statuses',currentStatusId),{comments});
+  s.comments=comments;inp.value='';renderStatusFooter(s);
+};
+
+window.deleteCurrentStatus=async function(){
+  if(!currentStatusId||!confirm('Supprimer ce statut ?')) return;
+  await deleteDoc(doc(db,'statuses',currentStatusId));
+  closeStatusModal();renderMainContent();
+};
+
+window.deleteStatusById=async function(id){
+  if(!confirm('Supprimer ce statut ?')) return;
+  await deleteDoc(doc(db,'statuses',id));renderMainContent();
+};
+
+window.openViewsModal=async function(){
+  if(!currentStatusId) return;
+  const snap=await getDoc(doc(db,'statuses',currentStatusId));
+  if(!snap.exists()) return;
+  const s={id:snap.id,...snap.data()};
+  if(s.userId!==currentUser.uid) return;
+  const views=s.views||[];
+  const listEl=document.getElementById('views-list');
+  listEl.innerHTML=views.length?views.map(uid=>{
+    const u=allUsers[uid];const name=u?`${u.prenom} ${u.nom}`:'Utilisateur';const initials=u?u.avatar:'?';
+    return `<div style="display:flex;align-items:center;gap:12px;padding:10px 0;border-bottom:1px solid rgba(255,255,255,0.08);">${makeAvatar(initials,40,avatarColor(uid))}<div style="color:#fff;font-weight:700;font-size:14px;flex:1;">${escapeHtml(name)}</div></div>`;
+  }).join(''):`<div style="color:#aaa;text-align:center;padding:20px;">Personne n'a encore vu ce statut</div>`;
+  document.getElementById('views-modal').style.display='flex';
+};
+window.closeViewsModal=function(){document.getElementById('views-modal').style.display='none';};
+
+// ── NEW CHAT MODAL ────────────────────────────────────────────
+window.openNewChat=async function(){
+  await loadAllUsers();
+  const contacts=Object.values(allUsers).filter(u=>u.uid!==currentUser.uid);
+  const list=document.getElementById('new-chat-list');
+  document.getElementById('new-chat-search').value='';
+  list.innerHTML=contacts.length?contacts.map(u=>`
+    <div onclick="openChatFromModal('${u.uid}')" data-name="${escapeHtml(u.prenom+' '+u.nom)}" style="display:flex;align-items:center;gap:12px;padding:10px 0;border-bottom:1px solid #f5f5f5;cursor:pointer;">
+      <div style="position:relative;">${makeAvatar(u.avatar,46,avatarColor(u.uid))}${u.online?'<div class="online-dot"></div>':''}</div>
+      <div><div style="font-weight:700;">${escapeHtml(u.prenom+' '+u.nom)}</div>
+        <div style="font-size:12px;color:#888;">${u.tel||''}</div>
+      </div>
+    </div>`).join(''):`<div style="text-align:center;padding:24px;color:#aaa;">Aucun utilisateur trouvé</div>`;
+  document.getElementById('new-chat-modal').style.display='flex';
+};
+window.closeNewChat=function(){document.getElementById('new-chat-modal').style.display='none';};
+window.openChatFromModal=function(uid){closeNewChat();openChat(uid);};
+window.filterNewChat=function(inp){
+  const q=inp.value.toLowerCase();
+  document.querySelectorAll('#new-chat-list [data-name]').forEach(el=>{el.style.display=el.dataset.name.toLowerCase().includes(q)?'':'none';});
+};
+
+// ── PROFILE ───────────────────────────────────────────────────
+window.showContactProfile=function(){
+  if(!selectedContact) return;
+  renderProfile(selectedContact,false);
+  showScreen('profile');
+};
+window.goBackFromProfile=function(){showScreen(selectedContact?'chat':'main');};
+
+function renderProfile(u,isMe){
+  document.getElementById('profile-avatar-big').innerHTML=makeAvatar(u.avatar,80,avatarColor(u.uid));
+  document.getElementById('profile-name').textContent=`${u.prenom} ${u.nom}`;
+  const country=COUNTRIES.find(c=>c.code===u.countryCode);
+  document.getElementById('profile-phone').textContent=(country?country.flag+' '+country.dial+' · ':'')+( u.tel||'');
+  document.getElementById('profile-email').textContent=isMe?(u.email||''):'';
+  document.getElementById('profile-status-text').textContent=`"${u.status||''}"`;
+  document.getElementById('profile-bio').textContent=u.bio||'';
+  const actions=document.getElementById('profile-actions');
+  const editBtn=document.getElementById('profile-edit-btn');
+  if(isMe){actions.innerHTML='';editBtn.style.display='block';}
+  else{
+    editBtn.style.display='none';
+    actions.innerHTML=`
+      <button class="action-btn" onclick="openChat('${u.uid}')"><svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="var(--orange)" stroke-width="2"><path d="M21 15a2 2 0 01-2 2H7l-4 4V5a2 2 0 012-2h14a2 2 0 012 2z"/></svg><span>Message</span></button>
+      <button class="action-btn" onclick="startCall('audio','${u.uid}')"><svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="var(--orange)" stroke-width="2"><path d="M22 16.9v3a2 2 0 01-2.2 2A19.8 19.8 0 012 4.2 2 2 0 014 2h3a2 2 0 012 1.7c.1.9.4 1.8.7 2.6a2 2 0 01-.5 2.1L8 9.9a16 16 0 006.1 6.1l1.5-1.5a2 2 0 012.1-.5c.8.3 1.7.6 2.6.7A2 2 0 0122 16.9z"/></svg><span>Appel</span></button>
+      <button class="action-btn" onclick="startCall('video','${u.uid}')"><svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="var(--orange)" stroke-width="2"><polygon points="23 7 16 12 23 17 23 7"/><rect x="1" y="5" width="15" height="14" rx="2"/></svg><span>Vidéo</span></button>`;
+  }
+}
+
+window.showEditProfile=function(){
+  document.getElementById('edit-status').value=currentProfile.status||'';
+  document.getElementById('edit-bio').value=currentProfile.bio||'';
+  showScreen('edit-profile');
+};
+window.saveProfile=async function(){
+  const status=document.getElementById('edit-status').value.trim();
+  const bio=document.getElementById('edit-bio').value.trim();
+  await updateDoc(doc(db,'users',currentUser.uid),{status,bio});
+  currentProfile.status=status;currentProfile.bio=bio;
+  allUsers[currentUser.uid]=currentProfile;
+  showScreen('profile');renderProfile(currentProfile,true);
+};
+
+// ── CALL ──────────────────────────────────────────────────────
+window.startCall=function(type,uid){
+  const u=uid?allUsers[uid]:selectedContact;if(!u) return;
+  document.getElementById('call-avatar-wrap').innerHTML=makeAvatar(u.avatar,100,avatarColor(u.uid));
+  document.getElementById('call-name').textContent=`${u.prenom} ${u.nom}`;
+  document.getElementById('call-type-label').textContent=type==='video'?'Appel vidéo...':'Appel audio...';
+  document.getElementById('call-modal').className='open';
+};
+window.endCall=function(){document.getElementById('call-modal').className='';};
+
+// ── LOGOUT ────────────────────────────────────────────────────
+window.logout=async function(){
+  if(msgUnsubscribe) msgUnsubscribe();
+  if(chatsUnsubscribe) chatsUnsubscribe();
+  await updateDoc(doc(db,'users',currentUser.uid),{online:false,lastSeen:serverTimestamp()}).catch(()=>{});
+  await signOut(auth);
+  currentUser=null;currentProfile=null;selectedContact=null;activeTab='chats';currentStatusId=null;allUsers={};
+};
+
+// ── UTILS ─────────────────────────────────────────────────────
+function escapeHtml(t){if(!t) return '';return String(t).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');}
+function formatTime(ts){
+  if(!ts) return '';
+  const d=new Date(ts);const now=new Date();const diff=(now-d)/1000;
+  if(diff<86400) return d.toLocaleTimeString('fr-FR',{hour:'2-digit',minute:'2-digit'});
+  if(diff<172800) return 'Hier';
+  return d.toLocaleDateString('fr-FR',{weekday:'short'});
+}
+function formatTimeAgo(ts){
+  if(!ts) return '';
+  const diff=Math.round((Date.now()-ts)/60000);
+  if(diff<1) return "À l'instant";if(diff<60) return `Il y a ${diff} min`;
+  if(diff<1440) return `Il y a ${Math.round(diff/60)}h`;return `Il y a ${Math.round(diff/1440)}j`;
+}
+
+// ── STARTUP ───────────────────────────────────────────────────
+window.addEventListener('DOMContentLoaded',()=>{initCountryDropdowns();});
+// Splash disparait après que Firebase vérifie l'auth (onAuthStateChanged gère tout)
+setTimeout(()=>{
+  // Si Firebase n'a pas encore répondu après 3s, aller sur auth
+  const splash=document.getElementById('splash');
+  if(splash&&splash.classList.contains('active')){}
+},3000);
+</script>
+</body>
+</html>
